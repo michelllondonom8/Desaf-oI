@@ -2,6 +2,10 @@
 #include <cstring>
 #include <cctype>
 #include <cstdint>
+#include "encriptacion.h"
+#include <iostream>
+
+using namespace std;
 
 char* descomprimir_rle(const char* comprimido) {
     if (!comprimido) return nullptr;
@@ -179,4 +183,58 @@ char* descomprimir_rle_binario16(const char* texto, int largo) {
 
     salida[k] = '\0';
     return salida;
+}
+
+char *procesarCaso(int caso, char *encriptado, int largoEncriptado, char *pista, int largoPista)
+{
+    bool encontrado = false;
+    char* textoFinal = nullptr;
+
+    unsigned int rotaciones[] = {1, 2, 3, 4, 5, 6, 7};
+    unsigned int claves[] = {199, 143, 87, 90, 64};
+
+    for (unsigned int r = 0; r < sizeof(rotaciones)/sizeof(rotaciones[0]) && !encontrado; ++r) {
+        for (unsigned int k = 0; k < sizeof(claves)/sizeof(claves[0]) && !encontrado; ++k) {
+            unsigned int rot = rotaciones[r];
+            unsigned int K = claves[k];
+
+            char* copia = new char[largoEncriptado + 1];
+            memcpy(copia, encriptado, largoEncriptado);
+            copia[largoEncriptado] = '\0';
+
+            procesar_mensaje((uint8_t*)copia, largoEncriptado, (uint8_t)K, true, rot);
+
+            //  Probar RLE binario 16
+            if (!encontrado && (largoEncriptado % 3 == 0)) {
+                char* salida = descomprimir_rle_binario16(copia, largoEncriptado);
+                if (salida && strstr(salida, pista)) {
+                    cout << "Metodo: RLE (binario16)" << endl;
+                    textoFinal = salida;
+                    encontrado = true;
+                } else if (salida) delete[] salida;
+            }
+
+            //  Probar LZ78
+            if (!encontrado && (largoEncriptado % 3 == 0)) {
+                int cantidad = 0;
+                Datos* comp = convertirLZ78(copia, largoEncriptado, cantidad);
+                if (comp) {
+                    char* salidaLZ = descomprimir_lz78(comp, cantidad);
+                    if (salidaLZ && strstr(salidaLZ, pista)) {
+                        cout << "Metodo: LZ78" << endl;
+                        textoFinal = salidaLZ;
+                        encontrado = true;
+                    } else if (salidaLZ) delete[] salidaLZ;
+                    delete[] comp;
+                }
+            }
+
+            delete[] copia;
+        }
+    }
+
+    if (!encontrado)
+        cout << "No se pudo desencriptar el caso." << endl;
+
+    return textoFinal;
 }
