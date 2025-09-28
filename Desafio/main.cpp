@@ -30,5 +30,40 @@ char* leerArchivo(const char* nombreArchivo, int& largo) {
     return contenido;
 }
 int main() {
+    int totalCasos;
+    cout << "Cuantos archivos quieres evaluar?: ";
+    cin >> totalCasos;
+
+    for (int caso = 1; caso <= totalCasos; ++caso) {
+        cout << "\n--- Procesando caso " << caso << " ---" << endl;
+
+        char nombreEnc[64], nombrePista[64];
+        sprintf(nombreEnc, "Encriptado%d.txt", caso);
+        sprintf(nombrePista, "pista%d.txt", caso);
+
+        int lenEnc = 0, lenPista = 0;
+        char* enc = leerArchivo(nombreEnc, lenEnc);
+        char* pista = leerArchivo(nombrePista, lenPista);
+
+        if (!enc || !pista) {
+            cout << "Error al leer archivos del caso " << caso << endl;
+            if (enc) delete[] enc;
+            if (pista) delete[] pista;
+            continue;
+        }
+
+        char* resultado = procesarCaso(caso, enc, lenEnc, pista, lenPista);
+
+        cout << "Texto final del caso " << caso << ":\n";
+        if (resultado) {
+            cout << resultado << endl;
+            delete[] resultado;
+        } else {
+            cout << "No se pudo resolver el caso." << endl;
+        }
+
+        delete[] enc;
+        delete[] pista;
+    }
     return 0;
 }
